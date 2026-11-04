@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta name="theme-color" content="#0a192f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <title>Controle de Quilometragem</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top-bar no-print">
+    <div class="container header-content">
+      <div class="brand">
+        <h1 class="brand-title">Controle de Quilometragem</h1>
+        <span class="storage-status" id="storageStatus">Salvo neste dispositivo</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container main-content no-print">
+    <!-- Identificação e Seleção de Período -->
+    <section class="card top-controls-card" aria-label="Identificação e período">
+      <div class="top-controls-grid">
+        <div class="field-group">
+          <label for="driverName">Seu nome completo (para o relatório)</label>
+          <input 
+            type="text" 
+            id="driverName" 
+            class="input-control" 
+            placeholder="Digite seu nome" 
+            autocomplete="name"
+          >
+        </div>
+
+        <div class="period-group">
+          <div class="field-group">
+            <label for="selectMonth">Mês</label>
+            <select id="selectMonth" class="input-control"></select>
+          </div>
+
+          <div class="field-group">
+            <label for="selectYear">Ano</label>
+            <input 
+              type="number" 
+              id="selectYear" 
+              class="input-control" 
+              min="2000" 
+              max="2100" 
+              step="1"
+              inputmode="numeric"
+            >
+          </div>
+
+          <div class="field-group btn-today-wrapper">
+            <button type="button" id="btnGoToday" class="btn btn-outline">Ir para hoje</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resumo do Mês -->
+      <div class="summary-bar">
+        <div class="summary-item">
+          <span class="summary-label">Total no mês</span>
+          <strong class="summary-value" id="totalKmMonth">0,0 km</strong>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Dias registrados</span>
+          <strong class="summary-value" id="daysRecordedMonth">0</strong>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Média por dia</span>
+          <strong class="summary-value" id="avgKmMonth">0,0 km</strong>
+        </div>
+      </div>
+    </section>
+
+    <div class="workspace-grid">
+      <!-- Painel de Lançamento do Dia -->
+      <section class="card form-card" id="formCard" aria-labelledby="formHeading">
+        <div class="card-header">
+          <h2 id="formHeading" class="card-title">Lançamento diário</h2>
+          <p class="card-subtitle">Anote os deslocamentos realizados no dia selecionado.</p>
+        </div>
+
+        <form id="entryForm" novalidate>
+          <!-- Seletor de Dia com Botões de Navegação Segura -->
+          <div class="field-group">
+            <label for="entryDay">Dia selecionado</label>
+            <div class="day-stepper">
+              <button type="button" id="btnPrevDay" class="btn-step" aria-label="Dia anterior">Anterior</button>
+              <select id="entryDay" class="input-control day-select" required></select>
+              <button type="button" id="btnNextDay" class="btn-step" aria-label="Próximo dia">Próximo</button>
+            </div>
+          </div>
+
+          <!-- Quadro informativo do que já está salvo no dia -->
+          <div class="current-day-status" id="currentDayBox">
+            <div class="current-day-header">
+              <span class="current-day-title" id="currentDayLabel">Resumo do dia</span>
+              <span class="current-day-km" id="currentDayKmValue">0,0 km</span>
+            </div>
+            <p class="current-day-note" id="currentDayNoteValue">Nenhum deslocamento anotado neste dia.</p>
+          </div>
+
+          <!-- Seletor de Modo em Botões Segmentados (Evita erro de operação) -->
+          <div class="field-group">
+            <label>Como deseja salvar este lançamento?</label>
+            <div class="mode-selector" role="radiogroup" aria-label="Modo de lançamento">
+              <button type="button" id="modeAddBtn" class="mode-btn active" data-mode="add">
+                Somar ao dia
+              </button>
+              <button type="button" id="modeReplaceBtn" class="mode-btn" data-mode="replace">
+                Substituir dia inteiro
+              </button>
+            </div>
+            <small class="field-hint" id="modeHintText">
+              Soma a nova quilometragem ao total do dia e adiciona o novo local sem repetir os anteriores.
+            </small>
+          </div>
+
+          <div class="field-group">
+            <label for="entryKm" id="labelEntryKm">Quilometragem a somar (km)</label>
+            <input 
+              type="text" 
+              inputmode="decimal" 
+              id="entryKm" 
+              class="input-control input-large" 
+              placeholder="Ex: 18,5" 
+              autocomplete="off"
+              required
+            >
+          </div>
+
+          <div class="field-group">
+            <label for="entryNote" id="labelEntryNote">Nova observação (onde foi neste trajeto)</label>
+            <textarea 
+              id="entryNote" 
+              class="input-control textarea-control" 
+              rows="3" 
+              placeholder="Digite apenas o novo local visitado (ex: Bairro Maracanã)"
+            ></textarea>
+          </div>
+
+          <div id="formFeedback" class="form-feedback" role="status" aria-live="polite"></div>
+
+          <div class="primary-action-area">
+            <button type="submit" id="btnSubmitEntry" class="btn btn-primary btn-block">
+              Somar registro ao dia
+            </button>
+          </div>
+
+          <!-- Área separada para evitar clique acidental em Limpar Dia -->
+          <div class="danger-zone">
+            <button type="button" id="btnClearDay" class="btn btn-danger-outline btn-block">
+              Apagar dados deste dia
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Planilha Mensal de Todos os Dias -->
+      <section class="card sheet-card" aria-labelledby="sheetHeading">
+        <div class="card-header sheet-header">
+          <div>
+            <h2 id="sheetHeading" class="card-title">Planilha de todos os dias do mês</h2>
+            <p class="card-subtitle" id="sheetPeriodLabel">Período selecionado</p>
+          </div>
+          <div class="sheet-actions">
+            <label class="filter-toggle">
+              <input type="checkbox" id="toggleOnlyFilled">
+              <span>Mostrar apenas dias preenchidos</span>
+            </label>
+            <button type="button" id="btnGeneratePdf" class="btn btn-primary">
+              Baixar relatório em PDF
+            </button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="sheet-table" id="monthlyTable">
+            <thead>
+              <tr>
+                <th class="col-day">Dia</th>
+                <th class="col-weekday">Dia da semana</th>
+                <th class="col-note">Observação / Locais</th>
+                <th class="col-km">Quilometragem</th>
+                <th class="col-action">Seleção</th>
+              </tr>
+            </thead>
+            <tbody id="sheetBody"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3" class="tfoot-label">Total acumulado no mês</td>
+                <td class="tfoot-value" id="tfootTotalKm">0,0 km</td>
+                <td class="tfoot-empty"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Modal de Confirmação para Limpar o Dia (Evita exclusão acidental) -->
+  <div class="modal-backdrop no-print" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" hidden>
+    <div class="modal-box">
+      <h3 id="modalTitle" class="modal-title">Confirmar exclusão do dia</h3>
+      <p id="modalMessage" class="modal-text">
+        Tem certeza de que deseja apagar a quilometragem e as observações registradas neste dia?
+      </p>
+      <div class="modal-preview-box" id="modalPreview"></div>
+      <div class="modal-actions">
+        <button type="button" id="btnCancelDelete" class="btn btn-outline">
+          Cancelar
+        </button>
+        <button type="button" id="btnConfirmDelete" class="btn btn-primary">
+          Sim, apagar dia
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Área exclusiva para o Relatório em PDF / Impressão -->
+  <section class="print-report only-print" aria-hidden="true">
+    <div class="print-header">
+      <div>
+        <h1 class="print-title">Relatório Mensal de Quilometragem</h1>
+        <p class="print-subtitle" id="printPeriod">Mês / Ano</p>
+      </div>
+      <div class="print-meta">
+        <p><strong>Responsável:</strong> <span id="printDriverName">Não informado</span></p>
+        <p><strong>Emissão:</strong> <span id="printGeneratedAt"></span></p>
+      </div>
+    </div>
+
+    <div class="print-summary">
+      <div class="print-summary-box">
+        <span>Total percorrido no mês</span>
+        <strong id="printTotalKm">0,0 km</strong>
+      </div>
+      <div class="print-summary-box">
+        <span>Dias com deslocamento</span>
+        <strong id="printDaysRecorded">0</strong>
+      </div>
+      <div class="print-summary-box">
+        <span>Média por dia rodado</span>
+        <strong id="printAvgKm">0,0 km</strong>
+      </div>
+    </div>
+
+    <table class="print-table">
+      <thead>
+        <tr>
+          <th style="width: 13%;">Dia do mês</th>
+          <th style="width: 17%;">Dia da semana</th>
+          <th style="width: 52%;">Observação / Locais visitados</th>
+          <th style="width: 18%; text-align: right;">Quilometragem</th>
+        </tr>
+      </thead>
+      <tbody id="printTableBody"></tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3" style="text-align: right; font-weight: 600;">Total do mês</td>
+          <td id="printTfootTotal" style="text-align: right; font-weight: 700;">0,0 km</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <div class="print-footer">
+      <div class="signature-line">
+        <span>Assinatura do responsável</span>
+      </div>
+      <div class="print-version">
+        <span>Controle de Quilometragem</span>
+      </div>
+    </div>
+  </section>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js" defer></script>
+  <script src="script.js" defer></script>
+</body>
+</html>
