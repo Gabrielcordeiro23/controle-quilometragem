@@ -1,4 +1,4 @@
-const CACHE_NAME = 'controle-km-offline-v6';
+const CACHE_NAME = 'controle-km-offline-v7';
 
 const ASSETS_TO_CACHE = [
   './',

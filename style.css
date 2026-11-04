@@ -82,9 +82,9 @@ body {
 }
 
 .brand-logo {
-  height: 24px;
+  height: 32px;
   width: auto;
-  max-width: 150px;
+  max-width: 165px;
   display: block;
   object-fit: contain;
   flex-shrink: 0;
@@ -717,7 +717,7 @@ body {
   }
 
   .brand-logo {
-    height: 19px;
+    height: 25px;
   }
 
   .brand-divider {
@@ -831,7 +831,7 @@ body {
   }
 
   .brand-logo {
-    height: 16px;
+    height: 21px;
   }
 
   .brand-divider {
