@@ -24,9 +24,8 @@
     year: now.getFullYear(),
     month: now.getMonth(), // 0 a 11
     selectedDay: now.getDate(),
-    mode: 'add', // 'add' (Somar ao dia) ou 'replace' (Substituir dia inteiro)
     onlyFilled: false,
-    records: {} // Formato: "YYYY-MM": { "1": { km: 10.5, note: "Centro" } }
+    records: {} // Formato: "YYYY-MM": { "1": { kmStart: 342670, kmEnd: 342690, km: 20, note: "Centro" } }
   };
 
   // Elementos do DOM
@@ -44,16 +43,12 @@
     btnPrevDay: document.getElementById('btnPrevDay'),
     btnNextDay: document.getElementById('btnNextDay'),
     entryDay: document.getElementById('entryDay'),
+    entryKmStart: document.getElementById('entryKmStart'),
+    entryKmEnd: document.getElementById('entryKmEnd'),
     currentDayBox: document.getElementById('currentDayBox'),
     currentDayLabel: document.getElementById('currentDayLabel'),
     currentDayKmValue: document.getElementById('currentDayKmValue'),
-    currentDayNoteValue: document.getElementById('currentDayNoteValue'),
-    modeAddBtn: document.getElementById('modeAddBtn'),
-    modeReplaceBtn: document.getElementById('modeReplaceBtn'),
-    modeHintText: document.getElementById('modeHintText'),
-    labelEntryKm: document.getElementById('labelEntryKm'),
-    entryKm: document.getElementById('entryKm'),
-    labelEntryNote: document.getElementById('labelEntryNote'),
+    currentDayStatusText: document.getElementById('currentDayStatusText'),
     entryNote: document.getElementById('entryNote'),
     formFeedback: document.getElementById('formFeedback'),
     btnSubmitEntry: document.getElementById('btnSubmitEntry'),
@@ -107,56 +102,49 @@
   function formatKm(value) {
     const num = Number(value) || 0;
     return num.toLocaleString('pt-BR', {
-      minimumFractionDigits: 1,
+      minimumFractionDigits: 0,
       maximumFractionDigits: 1
     }) + ' km';
   }
 
-  function formatNumberInput(value) {
-    const num = Number(value);
-    if (!Number.isFinite(num) || num <= 0) return '';
-    return num.toLocaleString('pt-BR', {
-      minimumFractionDigits: Number.isInteger(num) ? 0 : 1,
-      maximumFractionDigits: 2
+  function formatOdometer(value) {
+    if (value === null || value === undefined || value === '' || !Number.isFinite(Number(value))) {
+      return '—';
+    }
+    return Number(value).toLocaleString('pt-BR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 1
     });
   }
 
-  function parseKmInput(raw) {
-    if (typeof raw !== 'string') return NaN;
-    const cleaned = raw.trim().replace(/\s+/g, '');
-    if (!cleaned) return NaN;
-    let normalized = cleaned;
-    if (cleaned.includes(',') && cleaned.includes('.')) {
-      normalized = cleaned.replace(/\./g, '').replace(',', '.');
-    } else if (cleaned.includes(',')) {
-      normalized = cleaned.replace(',', '.');
+  function formatRawOdometerInput(value) {
+    if (value === null || value === undefined || value === '' || !Number.isFinite(Number(value))) {
+      return '';
     }
-    const parsed = Number(normalized);
-    if (!Number.isFinite(parsed) || parsed < 0) return NaN;
-    return Math.round(parsed * 100) / 100;
+    const num = Number(value);
+    if (Number.isInteger(num)) {
+      return String(num);
+    }
+    return String(num).replace('.', ',');
   }
 
-  // Junta observações sem duplicar locais já informados
-  function mergeNotes(existingNote, newNote) {
-    const parts = [];
-    const seen = new Set();
+  // Interpreta valores de hodômetro como "342670", "342.670" ou "342670,5"
+  function parseOdometerInput(raw) {
+    if (typeof raw !== 'string') return null;
+    const cleaned = raw.trim().replace(/\s+/g, '');
+    if (!cleaned) return null;
 
-    function addSegments(text) {
-      if (!text) return;
-      text.split(';').forEach((segment) => {
-        const clean = segment.trim();
-        if (!clean) return;
-        const lower = clean.toLowerCase();
-        if (!seen.has(lower)) {
-          seen.add(lower);
-          parts.push(clean);
-        }
-      });
+    let normalized = cleaned;
+    if (cleaned.includes(',')) {
+      normalized = cleaned.replace(/\./g, '').replace(',', '.');
+    } else if (/^\d{1,3}(\.\d{3})+$/.test(cleaned)) {
+      // Ponto usado como separador de milhar (ex: 342.670 -> 342670)
+      normalized = cleaned.replace(/\./g, '');
     }
 
-    addSegments(existingNote);
-    addSegments(newNote);
-    return parts.join('; ');
+    const parsed = Number(normalized);
+    if (!Number.isFinite(parsed) || parsed < 0) return NaN;
+    return Math.round(parsed * 10) / 10;
   }
 
   // Solicita persistência duradoura no navegador do celular/computador
@@ -218,19 +206,37 @@
     return monthRecords[String(day)] || null;
   }
 
-  function setDayRecord(year, month, day, km, note) {
+  function hasDayData(rec) {
+    if (!rec) return false;
+    const hasStart = rec.kmStart !== null && rec.kmStart !== undefined && Number.isFinite(Number(rec.kmStart));
+    const hasEnd = rec.kmEnd !== null && rec.kmEnd !== undefined && Number.isFinite(Number(rec.kmEnd));
+    const hasKm = Number(rec.km) > 0;
+    const hasNote = Boolean(rec.note && rec.note.trim());
+    return hasStart || hasEnd || hasKm || hasNote;
+  }
+
+  function setDayRecord(year, month, day, kmStart, kmEnd, note) {
     const key = getPeriodKey(year, month);
     if (!state.records[key]) {
       state.records[key] = {};
     }
-    const cleanNote = (note || '').trim();
-    const numericKm = Number(km) || 0;
 
-    if (numericKm <= 0 && !cleanNote) {
+    const cleanNote = (note || '').trim();
+    const validStart = kmStart !== null && Number.isFinite(kmStart) ? kmStart : null;
+    const validEnd = kmEnd !== null && Number.isFinite(kmEnd) ? kmEnd : null;
+
+    let distance = 0;
+    if (validStart !== null && validEnd !== null && validEnd >= validStart) {
+      distance = Math.round((validEnd - validStart) * 10) / 10;
+    }
+
+    if (validStart === null && validEnd === null && !cleanNote) {
       delete state.records[key][String(day)];
     } else {
       state.records[key][String(day)] = {
-        km: numericKm,
+        kmStart: validStart,
+        kmEnd: validEnd,
+        km: distance,
         note: cleanNote
       };
     }
@@ -289,7 +295,7 @@
     for (let d = 1; d <= daysCount; d++) {
       const weekdayShort = getWeekdayShort(state.year, state.month, d);
       const rec = monthRecords[String(d)];
-      const hasRecord = Boolean(rec && (rec.km > 0 || (rec.note && rec.note.trim())));
+      const hasRecord = hasDayData(rec);
       const opt = document.createElement('option');
       opt.value = String(d);
       opt.textContent = `${pad2(d)}/${pad2(state.month + 1)} (${weekdayShort})${hasRecord ? ' • Salvo' : ''}`;
@@ -301,50 +307,68 @@
     elements.btnNextDay.disabled = state.selectedDay >= daysCount;
   }
 
-  // Atualiza o painel que mostra o acumulado do dia e ajusta os campos conforme o modo
-  function updateDayPanelAndInputs(resetInputs = true) {
+  // Carrega os dados salvos do dia selecionado nos campos
+  function loadSelectedDayIntoForm() {
     const record = getDayRecord(state.year, state.month, state.selectedDay);
-    const hasRecord = Boolean(record && (record.km > 0 || (record.note && record.note.trim())));
+    const dateStr = `${pad2(state.selectedDay)}/${pad2(state.month + 1)}`;
+
+    if (record) {
+      elements.entryKmStart.value = formatRawOdometerInput(record.kmStart);
+      elements.entryKmEnd.value = formatRawOdometerInput(record.kmEnd);
+      elements.entryNote.value = record.note || '';
+    } else {
+      elements.entryKmStart.value = '';
+      elements.entryKmEnd.value = '';
+      elements.entryNote.value = '';
+    }
+
+    elements.btnSubmitEntry.textContent = `Salvar registro do dia ${dateStr}`;
+    updateLiveCalculation();
+  }
+
+  // Atualiza em tempo real o cálculo de KM Rodado (KM Final - KM Inicial)
+  function updateLiveCalculation() {
+    const rawStart = elements.entryKmStart.value;
+    const rawEnd = elements.entryKmEnd.value;
     const dateFormatted = `${pad2(state.selectedDay)}/${pad2(state.month + 1)}/${state.year}`;
 
-    elements.currentDayLabel.textContent = `Acumulado no dia ${dateFormatted}`;
-    elements.currentDayKmValue.textContent = hasRecord ? formatKm(record.km) : '0,0 km';
-    elements.currentDayNoteValue.textContent = hasRecord && record.note
-      ? `Locais registrados: ${record.note}`
-      : 'Nenhum deslocamento registrado neste dia até o momento.';
+    const kmStart = parseOdometerInput(rawStart);
+    const kmEnd = parseOdometerInput(rawEnd);
 
-    // Atualiza estado visual dos botões de modo
-    const isAddMode = state.mode === 'add';
-    elements.modeAddBtn.classList.toggle('active', isAddMode);
-    elements.modeReplaceBtn.classList.toggle('active', !isAddMode);
+    elements.currentDayBox.classList.remove('status-invalid');
+    elements.currentDayLabel.textContent = `Percurso no dia ${dateFormatted}`;
 
-    if (isAddMode) {
-      elements.modeHintText.textContent =
-        'Soma a quilometragem digitada ao dia e adiciona a nova observação sem repetir a anterior.';
-      elements.labelEntryKm.textContent = 'Quilometragem a somar (km)';
-      elements.labelEntryNote.textContent = 'Nova observação (digite apenas o novo local)';
-      elements.entryNote.placeholder = 'Ex: Bairro Maracanã';
-      elements.btnSubmitEntry.textContent = hasRecord
-        ? `Somar ao dia ${pad2(state.selectedDay)}/${pad2(state.month + 1)}`
-        : `Salvar no dia ${pad2(state.selectedDay)}/${pad2(state.month + 1)}`;
+    if (Number.isNaN(kmStart) || Number.isNaN(kmEnd)) {
+      elements.currentDayBox.classList.add('status-invalid');
+      elements.currentDayKmValue.textContent = 'Valor inválido';
+      elements.currentDayStatusText.textContent = 'Digite apenas números no KM Inicial e no KM Final.';
+      return;
+    }
 
-      // No modo Somar, os campos de entrada e observação ficam sempre limpos para evitar duplicação
-      if (resetInputs) {
-        elements.entryKm.value = '';
-        elements.entryNote.value = '';
+    if (kmStart !== null && kmEnd !== null) {
+      if (kmEnd < kmStart) {
+        elements.currentDayBox.classList.add('status-invalid');
+        elements.currentDayKmValue.textContent = 'Verifique o KM';
+        elements.currentDayStatusText.textContent =
+          `O KM Final (${formatOdometer(kmEnd)}) não pode ser menor que o KM Inicial (${formatOdometer(kmStart)}).`;
+        return;
       }
+      const diff = Math.round((kmEnd - kmStart) * 10) / 10;
+      elements.currentDayKmValue.textContent = formatKm(diff);
+      elements.currentDayStatusText.textContent =
+        `Cálculo automático: ${formatOdometer(kmEnd)} (final) − ${formatOdometer(kmStart)} (inicial) = ${formatKm(diff)} rodados.`;
+    } else if (kmStart !== null && kmEnd === null) {
+      elements.currentDayKmValue.textContent = 'Em aberto';
+      elements.currentDayStatusText.textContent =
+        `KM Inicial (${formatOdometer(kmStart)}) anotado. Você já pode salvar agora e preencher o KM Final no fim do dia.`;
+    } else if (kmStart === null && kmEnd !== null) {
+      elements.currentDayKmValue.textContent = 'Falta KM Inicial';
+      elements.currentDayStatusText.textContent =
+        `KM Final (${formatOdometer(kmEnd)}) preenchido. Informe também o KM Inicial do dia para calcular a distância.`;
     } else {
-      elements.modeHintText.textContent =
-        'Substitui o valor total de quilometragem e a observação inteira deste dia.';
-      elements.labelEntryKm.textContent = 'Quilometragem total do dia (km)';
-      elements.labelEntryNote.textContent = 'Observação completa do dia';
-      elements.entryNote.placeholder = 'Descreva todos os locais visitados no dia';
-      elements.btnSubmitEntry.textContent = `Salvar substituição do dia ${pad2(state.selectedDay)}/${pad2(state.month + 1)}`;
-
-      if (resetInputs) {
-        elements.entryKm.value = hasRecord ? formatNumberInput(record.km) : '';
-        elements.entryNote.value = hasRecord && record.note ? record.note : '';
-      }
+      elements.currentDayKmValue.textContent = '0 km';
+      elements.currentDayStatusText.textContent =
+        'Preencha o KM Inicial ao sair e o KM Final ao encerrar o dia para calcular os quilômetros rodados.';
     }
   }
 
@@ -357,10 +381,10 @@
 
     for (let d = 1; d <= daysCount; d++) {
       const rec = monthRecords[String(d)];
-      if (rec && (rec.km > 0 || (rec.note && rec.note.trim().length > 0))) {
+      if (rec) {
         const kmVal = Number(rec.km) || 0;
         totalKm += kmVal;
-        if (kmVal > 0) {
+        if (kmVal > 0 || (rec.kmStart !== null && rec.kmEnd !== null)) {
           daysRecorded += 1;
         }
       }
@@ -368,9 +392,9 @@
 
     const avgKm = daysRecorded > 0 ? totalKm / daysRecorded : 0;
     return {
-      totalKm: Math.round(totalKm * 100) / 100,
+      totalKm: Math.round(totalKm * 10) / 10,
       daysRecorded,
-      avgKm: Math.round(avgKm * 100) / 100
+      avgKm: Math.round(avgKm * 10) / 10
     };
   }
 
@@ -383,6 +407,22 @@
     elements.sheetPeriodLabel.textContent = `${MONTHS[state.month]} de ${state.year}`;
   }
 
+  function formatOdometerSummaryLine(rec) {
+    if (!rec) return '';
+    const hasStart = rec.kmStart !== null && rec.kmStart !== undefined;
+    const hasEnd = rec.kmEnd !== null && rec.kmEnd !== undefined;
+    if (hasStart && hasEnd) {
+      return `Inicial: ${formatOdometer(rec.kmStart)} | Final: ${formatOdometer(rec.kmEnd)}`;
+    }
+    if (hasStart) {
+      return `Inicial: ${formatOdometer(rec.kmStart)} | Final: em aberto`;
+    }
+    if (hasEnd) {
+      return `Inicial: — | Final: ${formatOdometer(rec.kmEnd)}`;
+    }
+    return '';
+  }
+
   function renderTable() {
     const daysCount = getDaysInMonth(state.year, state.month);
     const monthRecords = getMonthRecords(state.year, state.month);
@@ -393,7 +433,7 @@
 
     for (let d = 1; d <= daysCount; d++) {
       const rec = monthRecords[String(d)];
-      const hasData = Boolean(rec && (rec.km > 0 || (rec.note && rec.note.trim())));
+      const hasData = hasDayData(rec);
 
       if (state.onlyFilled && !hasData) {
         continue;
@@ -416,11 +456,19 @@
 
       const tdNote = document.createElement('td');
       tdNote.className = 'col-note';
-      tdNote.textContent = hasData && rec.note ? rec.note : '—';
+      const noteText = hasData && rec.note ? escapeHtml(rec.note) : '—';
+      const odoLine = hasData ? formatOdometerSummaryLine(rec) : '';
+      tdNote.innerHTML = odoLine
+        ? `${noteText}<span class="odometer-sub">${escapeHtml(odoLine)}</span>`
+        : noteText;
 
       const tdKm = document.createElement('td');
       tdKm.className = 'col-km';
-      tdKm.textContent = hasData ? formatKm(rec.km) : '0,0 km';
+      if (hasData && rec.kmStart !== null && rec.kmEnd === null) {
+        tdKm.textContent = 'Aberto';
+      } else {
+        tdKm.textContent = hasData ? formatKm(rec.km) : '0 km';
+      }
 
       const tdAction = document.createElement('td');
       tdAction.className = 'col-action';
@@ -481,7 +529,7 @@
 
     for (let d = 1; d <= daysCount; d++) {
       const rec = monthRecords[String(d)];
-      const hasData = Boolean(rec && (rec.km > 0 || (rec.note && rec.note.trim())));
+      const hasData = hasDayData(rec);
 
       const tr = document.createElement('tr');
 
@@ -494,23 +542,37 @@
       const tdNote = document.createElement('td');
       tdNote.textContent = hasData && rec.note ? rec.note : '—';
 
+      const tdKmStart = document.createElement('td');
+      tdKmStart.style.textAlign = 'right';
+      tdKmStart.textContent = hasData ? formatOdometer(rec.kmStart) : '—';
+
+      const tdKmEnd = document.createElement('td');
+      tdKmEnd.style.textAlign = 'right';
+      tdKmEnd.textContent = hasData ? formatOdometer(rec.kmEnd) : '—';
+
       const tdKm = document.createElement('td');
       tdKm.style.textAlign = 'right';
       tdKm.style.fontWeight = hasData && rec.km > 0 ? '600' : '400';
-      tdKm.textContent = hasData ? formatKm(rec.km) : '0,0 km';
+      tdKm.textContent = hasData ? formatKm(rec.km) : '0 km';
 
       tr.appendChild(tdDate);
       tr.appendChild(tdWeekday);
       tr.appendChild(tdNote);
+      tr.appendChild(tdKmStart);
+      tr.appendChild(tdKmEnd);
       tr.appendChild(tdKm);
 
       elements.printTableBody.appendChild(tr);
     }
   }
 
-  function refreshUI(resetInputs = true) {
+  function refreshUI(reloadForm = true) {
     populateDaySelect();
-    updateDayPanelAndInputs(resetInputs);
+    if (reloadForm) {
+      loadSelectedDayIntoForm();
+    } else {
+      updateLiveCalculation();
+    }
     renderSummary();
     renderTable();
     renderPrintReport();
@@ -518,7 +580,6 @@
 
   function selectDay(day, scrollToForm) {
     state.selectedDay = Number(day);
-    state.mode = 'add'; // Volta sempre ao modo seguro de somar, limpando os campos
     refreshUI(true);
     if (scrollToForm && elements.formCard) {
       elements.formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -528,12 +589,14 @@
   // Modal de confirmação para limpar o dia
   function openDeleteModal() {
     const record = getDayRecord(state.year, state.month, state.selectedDay);
-    const hasRecord = Boolean(record && (record.km > 0 || (record.note && record.note.trim())));
+    const hasRecord = hasDayData(record);
     const dateStr = `${pad2(state.selectedDay)}/${pad2(state.month + 1)}/${state.year}`;
 
     if (!hasRecord) {
-      elements.entryKm.value = '';
+      elements.entryKmStart.value = '';
+      elements.entryKmEnd.value = '';
       elements.entryNote.value = '';
+      updateLiveCalculation();
       showFeedback(`O dia ${dateStr} já está sem registros salvos.`);
       return;
     }
@@ -541,7 +604,8 @@
     elements.modalMessage.textContent =
       `Tem certeza de que deseja apagar todos os dados registrados no dia ${dateStr}?`;
     elements.modalPreview.innerHTML =
-      `<strong>Quilometragem:</strong> ${formatKm(record.km)}<br>` +
+      `<strong>KM Inicial:</strong> ${formatOdometer(record.kmStart)} | <strong>KM Final:</strong> ${formatOdometer(record.kmEnd)}<br>` +
+      `<strong>Total rodado:</strong> ${formatKm(record.km)}<br>` +
       `<strong>Observação:</strong> ${record.note ? escapeHtml(record.note) : '—'}`;
 
     elements.confirmModal.hidden = false;
@@ -570,7 +634,6 @@
 
     elements.selectMonth.addEventListener('change', (e) => {
       state.month = Number(e.target.value);
-      state.mode = 'add';
       refreshUI(true);
     });
 
@@ -578,7 +641,6 @@
       const y = parseInt(e.target.value, 10);
       if (Number.isFinite(y) && y >= 2000 && y <= 2100) {
         state.year = y;
-        state.mode = 'add';
         refreshUI(true);
       }
     });
@@ -589,7 +651,6 @@
       if (y > 2100) y = 2100;
       state.year = y;
       elements.selectYear.value = String(y);
-      state.mode = 'add';
       refreshUI(true);
     });
 
@@ -598,7 +659,6 @@
       state.year = today.getFullYear();
       state.month = today.getMonth();
       state.selectedDay = today.getDate();
-      state.mode = 'add';
       elements.selectMonth.value = String(state.month);
       elements.selectYear.value = String(state.year);
       refreshUI(true);
@@ -607,14 +667,12 @@
 
     elements.entryDay.addEventListener('change', (e) => {
       state.selectedDay = Number(e.target.value);
-      state.mode = 'add';
       refreshUI(true);
     });
 
     elements.btnPrevDay.addEventListener('click', () => {
       if (state.selectedDay > 1) {
         state.selectedDay -= 1;
-        state.mode = 'add';
         refreshUI(true);
       }
     });
@@ -623,68 +681,61 @@
       const daysCount = getDaysInMonth(state.year, state.month);
       if (state.selectedDay < daysCount) {
         state.selectedDay += 1;
-        state.mode = 'add';
         refreshUI(true);
       }
     });
 
-    // Alternância entre Somar ao dia e Substituir dia inteiro
-    elements.modeAddBtn.addEventListener('click', () => {
-      if (state.mode !== 'add') {
-        state.mode = 'add';
-        // Ao mudar para Somar, apaga a observação e o km dos campos de digitação
-        updateDayPanelAndInputs(true);
-      }
-    });
-
-    elements.modeReplaceBtn.addEventListener('click', () => {
-      if (state.mode !== 'replace') {
-        state.mode = 'replace';
-        updateDayPanelAndInputs(true);
-      }
-    });
+    // Cálculo automático enquanto o técnico digita KM Inicial e KM Final
+    elements.entryKmStart.addEventListener('input', updateLiveCalculation);
+    elements.entryKmEnd.addEventListener('input', updateLiveCalculation);
 
     // Salvamento do formulário
     elements.entryForm.addEventListener('submit', (e) => {
       e.preventDefault();
 
-      const rawKm = elements.entryKm.value;
+      const rawStart = elements.entryKmStart.value;
+      const rawEnd = elements.entryKmEnd.value;
       const note = elements.entryNote.value.trim();
 
-      let parsedKm = 0;
-      if (rawKm.trim() !== '') {
-        parsedKm = parseKmInput(rawKm);
-        if (Number.isNaN(parsedKm)) {
-          showFeedback('Informe um valor numérico válido para a quilometragem.', true);
-          elements.entryKm.focus();
-          return;
-        }
-      } else if (!note) {
-        showFeedback('Informe a quilometragem ou uma observação para salvar no dia.', true);
-        elements.entryKm.focus();
+      const kmStart = parseOdometerInput(rawStart);
+      const kmEnd = parseOdometerInput(rawEnd);
+
+      if (Number.isNaN(kmStart)) {
+        showFeedback('Informe um número válido para o KM Inicial.', true);
+        elements.entryKmStart.focus();
         return;
       }
 
-      const existing = getDayRecord(state.year, state.month, state.selectedDay);
-
-      let finalKm = parsedKm;
-      let finalNote = note;
-
-      if (state.mode === 'add' && existing) {
-        finalKm = Math.round(((Number(existing.km) || 0) + parsedKm) * 100) / 100;
-        finalNote = mergeNotes(existing.note, note);
-      } else if (state.mode === 'replace') {
-        finalNote = mergeNotes('', note);
+      if (Number.isNaN(kmEnd)) {
+        showFeedback('Informe um número válido para o KM Final.', true);
+        elements.entryKmEnd.focus();
+        return;
       }
 
-      setDayRecord(state.year, state.month, state.selectedDay, finalKm, finalNote);
+      if (kmStart === null && kmEnd === null && !note) {
+        showFeedback('Preencha o KM Inicial, o KM Final ou uma observação para salvar.', true);
+        elements.entryKmStart.focus();
+        return;
+      }
 
-      // Após salvar, mantém em modo Somar e limpa a observação e o km digitados
-      state.mode = 'add';
+      if (kmStart !== null && kmEnd !== null && kmEnd < kmStart) {
+        showFeedback('O KM Final não pode ser menor que o KM Inicial.', true);
+        elements.entryKmEnd.focus();
+        return;
+      }
+
+      setDayRecord(state.year, state.month, state.selectedDay, kmStart, kmEnd, note);
       refreshUI(true);
 
       const dateStr = `${pad2(state.selectedDay)}/${pad2(state.month + 1)}`;
-      showFeedback(`Registro salvo no dia ${dateStr}. Total do dia: ${formatKm(finalKm)}.`);
+      if (kmStart !== null && kmEnd !== null) {
+        const diff = Math.round((kmEnd - kmStart) * 10) / 10;
+        showFeedback(`Dia ${dateStr} salvo com sucesso. Total rodado no dia: ${formatKm(diff)}.`);
+      } else if (kmStart !== null) {
+        showFeedback(`KM Inicial (${formatOdometer(kmStart)}) salvo no dia ${dateStr}. Preencha o KM Final ao encerrar o dia.`);
+      } else {
+        showFeedback(`Registro do dia ${dateStr} salvo com sucesso.`);
+      }
     });
 
     // Botão Limpar Dia abre o modal de confirmação
@@ -706,7 +757,6 @@
       const dateStr = `${pad2(state.selectedDay)}/${pad2(state.month + 1)}`;
       deleteDayRecord(state.year, state.month, state.selectedDay);
       closeDeleteModal();
-      state.mode = 'add';
       refreshUI(true);
       showFeedback(`Os dados do dia ${dateStr} foram apagados.`);
     });
@@ -720,7 +770,7 @@
       if (!state.driverName.trim()) {
         elements.driverName.focus();
         const proceed = window.confirm(
-          'O seu nome ainda não foi preenchido. Deseja gerar o relatório em PDF mesmo assim?'
+          'O nome do técnico ainda não foi preenchido. Deseja gerar o relatório em PDF mesmo assim?'
         );
         if (!proceed) return;
       }
@@ -768,7 +818,7 @@
 
     doc.setTextColor(10, 25, 47);
     doc.setFontSize(9);
-    doc.text(`Responsável: ${driverName}`, 196, 16, { align: 'right' });
+    doc.text(`Técnico / Responsável: ${driverName}`, 196, 16, { align: 'right' });
     doc.setTextColor(67, 84, 110);
     doc.text(`Emissão: ${emittedAt}`, 196, 22, { align: 'right' });
 
@@ -785,9 +835,9 @@
 
     doc.setFontSize(7.5);
     doc.setTextColor(67, 84, 110);
-    doc.text('TOTAL NO MÊS', 18, 33);
-    doc.text('DIAS REGISTRADOS', 82, 33);
-    doc.text('MÉDIA POR DIA RODADO', 142, 33);
+    doc.text('TOTAL RODADO NO MÊS', 18, 33);
+    doc.text('DIAS TRABALHADOS', 82, 33);
+    doc.text('MÉDIA POR DIA', 142, 33);
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10.5);
@@ -800,26 +850,28 @@
     const tableRows = [];
     for (let d = 1; d <= daysCount; d++) {
       const rec = monthRecords[String(d)];
-      const hasData = Boolean(rec && (rec.km > 0 || (rec.note && rec.note.trim())));
+      const hasData = hasDayData(rec);
       tableRows.push([
         `${pad2(d)}/${monthNumber}/${state.year}`,
         getWeekdayName(state.year, state.month, d),
         hasData && rec.note ? rec.note : '—',
-        hasData ? formatKm(rec.km) : '0,0 km'
+        hasData ? formatOdometer(rec.kmStart) : '—',
+        hasData ? formatOdometer(rec.kmEnd) : '—',
+        hasData ? formatKm(rec.km) : '0 km'
       ]);
     }
 
     doc.autoTable({
       startY: 45,
       margin: { left: 14, right: 14, bottom: 20 },
-      head: [['Dia do mês', 'Dia da semana', 'Observação / Locais visitados', 'Quilometragem']],
+      head: [['Data', 'Dia da semana', 'Observação / Locais visitados', 'KM Inicial', 'KM Final', 'KM Rodado']],
       body: tableRows,
-      foot: [['', '', 'Total acumulado no mês', formatKm(stats.totalKm)]],
+      foot: [['', '', '', '', 'Total no mês', formatKm(stats.totalKm)]],
       theme: 'grid',
       styles: {
         font: 'helvetica',
-        fontSize: 8,
-        cellPadding: 1.6,
+        fontSize: 7.8,
+        cellPadding: 1.5,
         textColor: [10, 25, 47],
         lineColor: [180, 196, 220],
         lineWidth: 0.2
@@ -828,7 +880,7 @@
         fillColor: [10, 25, 47],
         textColor: [255, 255, 255],
         fontStyle: 'bold',
-        fontSize: 8
+        fontSize: 7.8
       },
       alternateRowStyles: {
         fillColor: [246, 248, 252]
@@ -837,19 +889,21 @@
         fillColor: [237, 242, 249],
         textColor: [10, 25, 47],
         fontStyle: 'bold',
-        fontSize: 8.5
+        fontSize: 8.2
       },
       columnStyles: {
-        0: { cellWidth: 25 },
-        1: { cellWidth: 32 },
-        2: { cellWidth: 95 },
-        3: { cellWidth: 30, halign: 'right' }
+        0: { cellWidth: 21 },
+        1: { cellWidth: 27 },
+        2: { cellWidth: 69 },
+        3: { cellWidth: 22, halign: 'right' },
+        4: { cellWidth: 22, halign: 'right' },
+        5: { cellWidth: 21, halign: 'right' }
       },
       didParseCell: function (data) {
-        if (data.section === 'foot' && data.column.index === 2) {
+        if (data.section === 'head' && data.column.index >= 3) {
           data.cell.styles.halign = 'right';
         }
-        if (data.section === 'foot' && data.column.index === 3) {
+        if (data.section === 'foot' && data.column.index >= 4) {
           data.cell.styles.halign = 'right';
         }
       }

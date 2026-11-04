@@ -43,6 +43,7 @@ body {
   color: var(--text-main);
   line-height: 1.5;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
   width: 100%;
   max-width: 100%;
@@ -177,7 +178,7 @@ body {
 /* Grade Principal */
 .workspace-grid {
   display: grid;
-  grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 390px) minmax(0, 1fr);
   gap: 1.35rem;
   align-items: start;
   width: 100%;
@@ -217,16 +218,18 @@ body {
 }
 
 .field-group label {
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: var(--navy-900);
 }
 
-.field-hint {
-  font-size: 0.77rem;
-  color: var(--text-secondary);
-  line-height: 1.4;
-  margin-top: 0.15rem;
+/* Grade lado a lado para KM Inicial e KM Final */
+.odometer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+  width: 100%;
 }
 
 .input-control {
@@ -251,8 +254,9 @@ body {
 }
 
 .input-large {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .textarea-control {
@@ -305,7 +309,7 @@ body {
   cursor: not-allowed;
 }
 
-/* Quadro de Status do Dia Atual */
+/* Quadro de Cálculo Automático do Dia */
 .current-day-status {
   background-color: var(--navy-50);
   border: 1px solid var(--navy-200);
@@ -317,13 +321,19 @@ body {
   max-width: 100%;
 }
 
+.current-day-status.status-invalid {
+  background-color: #fdf3f4;
+  border-color: #e6b8bc;
+  border-left-color: #8b1e24;
+}
+
 .current-day-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
   flex-wrap: wrap;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.25rem;
 }
 
 .current-day-title {
@@ -335,55 +345,22 @@ body {
 }
 
 .current-day-km {
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--navy-900);
   font-variant-numeric: tabular-nums;
 }
 
+.status-invalid .current-day-title,
+.status-invalid .current-day-km {
+  color: #8b1e24;
+}
+
 .current-day-note {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: var(--text-secondary);
   word-break: break-word;
   overflow-wrap: anywhere;
-}
-
-/* Seletor de Modo em Abas Seguras */
-.mode-selector {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.4rem;
-  background-color: var(--bg-subtle);
-  padding: 0.28rem;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  width: 100%;
-}
-
-.mode-btn {
-  font-family: var(--font-sans);
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  background-color: transparent;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  min-height: 42px;
-  padding: 0.4rem 0.45rem;
-  cursor: pointer;
-  text-align: center;
-  line-height: 1.25;
-  transition: all var(--transition);
-}
-
-.mode-btn.active {
-  background-color: var(--navy-900);
-  color: #ffffff;
-}
-
-.mode-btn:not(.active):hover {
-  color: var(--navy-900);
-  background-color: var(--bg-hover);
 }
 
 /* Feedback do Formulário */
@@ -574,6 +551,15 @@ body {
   overflow-wrap: anywhere;
 }
 
+.odometer-sub {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--navy-700);
+  font-weight: 500;
+  margin-top: 0.18rem;
+  font-variant-numeric: tabular-nums;
+}
+
 .col-km {
   width: 105px;
   text-align: right !important;
@@ -757,6 +743,10 @@ body {
     margin-top: 0;
   }
 
+  .odometer-grid {
+    gap: 0.6rem;
+  }
+
   .sheet-actions {
     width: 100%;
     flex-direction: column;
@@ -800,6 +790,10 @@ body {
     width: 68px;
   }
 
+  .odometer-sub {
+    font-size: 0.7rem;
+  }
+
   .btn-table {
     padding: 0.35rem 0.35rem;
     font-size: 0.72rem;
@@ -808,6 +802,55 @@ body {
 
   .modal-actions {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Telas pequenas (320px a 380px) ou celulares com Zoom de Tela / Fonte Grande ativado */
+@media (max-width: 380px) {
+  .container {
+    padding: 0 0.55rem;
+  }
+
+  .card {
+    padding: 0.85rem 0.7rem;
+  }
+
+  .period-group {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .odometer-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .btn-step {
+    padding: 0 0.45rem;
+    font-size: 0.76rem;
+  }
+
+  .day-select {
+    font-size: 0.9rem;
+    padding-left: 0.35rem;
+    padding-right: 0.35rem;
+  }
+
+  .col-day {
+    width: 45px;
+  }
+
+  .col-km {
+    width: 64px;
+  }
+
+  .col-action {
+    width: 58px;
+  }
+
+  .sheet-table th,
+  .sheet-table td {
+    padding: 0.5rem 0.25rem;
+    font-size: 0.76rem;
   }
 }
 

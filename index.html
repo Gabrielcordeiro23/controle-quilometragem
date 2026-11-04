@@ -30,12 +30,12 @@
     <section class="card top-controls-card" aria-label="Identificação e período">
       <div class="top-controls-grid">
         <div class="field-group">
-          <label for="driverName">Seu nome completo (para o relatório)</label>
+          <label for="driverName">Nome completo do técnico (para o relatório)</label>
           <input 
             type="text" 
             id="driverName" 
             class="input-control" 
-            placeholder="Digite seu nome" 
+            placeholder="Digite seu nome completo" 
             autocomplete="name"
           >
         </div>
@@ -68,16 +68,16 @@
       <!-- Resumo do Mês -->
       <div class="summary-bar">
         <div class="summary-item">
-          <span class="summary-label">Total no mês</span>
-          <strong class="summary-value" id="totalKmMonth">0,0 km</strong>
+          <span class="summary-label">Total rodado no mês</span>
+          <strong class="summary-value" id="totalKmMonth">0 km</strong>
         </div>
         <div class="summary-item">
-          <span class="summary-label">Dias registrados</span>
+          <span class="summary-label">Dias trabalhados</span>
           <strong class="summary-value" id="daysRecordedMonth">0</strong>
         </div>
         <div class="summary-item">
           <span class="summary-label">Média por dia</span>
-          <strong class="summary-value" id="avgKmMonth">0,0 km</strong>
+          <strong class="summary-value" id="avgKmMonth">0 km</strong>
         </div>
       </div>
     </section>
@@ -86,8 +86,8 @@
       <!-- Painel de Lançamento do Dia -->
       <section class="card form-card" id="formCard" aria-labelledby="formHeading">
         <div class="card-header">
-          <h2 id="formHeading" class="card-title">Lançamento diário</h2>
-          <p class="card-subtitle">Anote os deslocamentos realizados no dia selecionado.</p>
+          <h2 id="formHeading" class="card-title">Marcação do hodômetro no dia</h2>
+          <p class="card-subtitle">Anote o KM do painel do veículo no início e no fim do expediente.</p>
         </div>
 
         <form id="entryForm" novalidate>
@@ -101,51 +101,51 @@
             </div>
           </div>
 
-          <!-- Quadro informativo do que já está salvo no dia -->
+          <!-- Campos de KM Inicial e KM Final lado a lado -->
+          <div class="odometer-grid">
+            <div class="field-group">
+              <label for="entryKmStart">KM Inicial (início do dia)</label>
+              <input 
+                type="text" 
+                inputmode="numeric" 
+                id="entryKmStart" 
+                class="input-control input-large" 
+                placeholder="Ex: 342670" 
+                autocomplete="off"
+              >
+            </div>
+
+            <div class="field-group">
+              <label for="entryKmEnd">KM Final (fim do dia)</label>
+              <input 
+                type="text" 
+                inputmode="numeric" 
+                id="entryKmEnd" 
+                class="input-control input-large" 
+                placeholder="Ex: 342690" 
+                autocomplete="off"
+              >
+            </div>
+          </div>
+
+          <!-- Quadro informativo do cálculo automático do dia -->
           <div class="current-day-status" id="currentDayBox">
             <div class="current-day-header">
-              <span class="current-day-title" id="currentDayLabel">Resumo do dia</span>
-              <span class="current-day-km" id="currentDayKmValue">0,0 km</span>
+              <span class="current-day-title" id="currentDayLabel">Total percorrido no dia</span>
+              <span class="current-day-km" id="currentDayKmValue">0 km</span>
             </div>
-            <p class="current-day-note" id="currentDayNoteValue">Nenhum deslocamento anotado neste dia.</p>
-          </div>
-
-          <!-- Seletor de Modo em Botões Segmentados -->
-          <div class="field-group">
-            <label>Como deseja salvar este lançamento?</label>
-            <div class="mode-selector" role="radiogroup" aria-label="Modo de lançamento">
-              <button type="button" id="modeAddBtn" class="mode-btn active" data-mode="add">
-                Somar ao dia
-              </button>
-              <button type="button" id="modeReplaceBtn" class="mode-btn" data-mode="replace">
-                Substituir dia
-              </button>
-            </div>
-            <small class="field-hint" id="modeHintText">
-              Soma a nova quilometragem ao total do dia e adiciona o novo local sem repetir os anteriores.
-            </small>
+            <p class="current-day-note" id="currentDayStatusText">
+              Preencha o KM Inicial e o KM Final para calcular a distância percorrida.
+            </p>
           </div>
 
           <div class="field-group">
-            <label for="entryKm" id="labelEntryKm">Quilometragem a somar (km)</label>
-            <input 
-              type="text" 
-              inputmode="decimal" 
-              id="entryKm" 
-              class="input-control input-large" 
-              placeholder="Ex: 18,5" 
-              autocomplete="off"
-              required
-            >
-          </div>
-
-          <div class="field-group">
-            <label for="entryNote" id="labelEntryNote">Nova observação (onde foi neste trajeto)</label>
+            <label for="entryNote">Observação (locais atendidos no dia)</label>
             <textarea 
               id="entryNote" 
               class="input-control textarea-control" 
               rows="3" 
-              placeholder="Digite apenas o novo local visitado (ex: Bairro Maracanã)"
+              placeholder="Descreva as regiões, clientes ou cidades visitadas no dia"
             ></textarea>
           </div>
 
@@ -153,7 +153,7 @@
 
           <div class="primary-action-area">
             <button type="submit" id="btnSubmitEntry" class="btn btn-primary btn-block">
-              Somar registro ao dia
+              Salvar registro do dia
             </button>
           </div>
 
@@ -190,8 +190,8 @@
               <tr>
                 <th class="col-day">Dia</th>
                 <th class="col-weekday">Dia da semana</th>
-                <th class="col-note">Observação</th>
-                <th class="col-km">KM</th>
+                <th class="col-note">Observação e Hodômetro</th>
+                <th class="col-km">Rodado</th>
                 <th class="col-action">Ação</th>
               </tr>
             </thead>
@@ -199,8 +199,8 @@
             <tfoot>
               <tr>
                 <td class="col-weekday tfoot-label"></td>
-                <td colspan="2" class="tfoot-label">Total no mês</td>
-                <td class="tfoot-value" id="tfootTotalKm">0,0 km</td>
+                <td colspan="2" class="tfoot-label">Total rodado no mês</td>
+                <td class="tfoot-value" id="tfootTotalKm">0 km</td>
                 <td class="tfoot-empty"></td>
               </tr>
             </tfoot>
@@ -215,7 +215,7 @@
     <div class="modal-box">
       <h3 id="modalTitle" class="modal-title">Confirmar exclusão do dia</h3>
       <p id="modalMessage" class="modal-text">
-        Tem certeza de que deseja apagar a quilometragem e as observações registradas neste dia?
+        Tem certeza de que deseja apagar os dados registrados neste dia?
       </p>
       <div class="modal-preview-box" id="modalPreview"></div>
       <div class="modal-actions">
@@ -237,7 +237,7 @@
         <p class="print-subtitle" id="printPeriod">Mês / Ano</p>
       </div>
       <div class="print-meta">
-        <p><strong>Responsável:</strong> <span id="printDriverName">Não informado</span></p>
+        <p><strong>Técnico / Responsável:</strong> <span id="printDriverName">Não informado</span></p>
         <p><strong>Emissão:</strong> <span id="printGeneratedAt"></span></p>
       </div>
     </div>
@@ -245,32 +245,34 @@
     <div class="print-summary">
       <div class="print-summary-box">
         <span>Total percorrido no mês</span>
-        <strong id="printTotalKm">0,0 km</strong>
+        <strong id="printTotalKm">0 km</strong>
       </div>
       <div class="print-summary-box">
-        <span>Dias com deslocamento</span>
+        <span>Dias trabalhados</span>
         <strong id="printDaysRecorded">0</strong>
       </div>
       <div class="print-summary-box">
-        <span>Média por dia rodado</span>
-        <strong id="printAvgKm">0,0 km</strong>
+        <span>Média por dia</span>
+        <strong id="printAvgKm">0 km</strong>
       </div>
     </div>
 
     <table class="print-table">
       <thead>
         <tr>
-          <th style="width: 13%;">Dia do mês</th>
-          <th style="width: 17%;">Dia da semana</th>
-          <th style="width: 52%;">Observação / Locais visitados</th>
-          <th style="width: 18%; text-align: right;">Quilometragem</th>
+          <th style="width: 11%;">Data</th>
+          <th style="width: 14%;">Dia da semana</th>
+          <th style="width: 39%;">Observação / Locais visitados</th>
+          <th style="width: 12%; text-align: right;">KM Inicial</th>
+          <th style="width: 12%; text-align: right;">KM Final</th>
+          <th style="width: 12%; text-align: right;">KM Rodado</th>
         </tr>
       </thead>
       <tbody id="printTableBody"></tbody>
       <tfoot>
         <tr>
-          <td colspan="3" style="text-align: right; font-weight: 600;">Total do mês</td>
-          <td id="printTfootTotal" style="text-align: right; font-weight: 700;">0,0 km</td>
+          <td colspan="5" style="text-align: right; font-weight: 600;">Total rodado no mês</td>
+          <td id="printTfootTotal" style="text-align: right; font-weight: 700;">0 km</td>
         </tr>
       </tfoot>
     </table>
