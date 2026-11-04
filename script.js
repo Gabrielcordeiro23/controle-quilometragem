@@ -13,6 +13,10 @@
     'Quinta-feira', 'Sexta-feira', 'Sábado'
   ];
 
+  const WEEKDAYS_SHORT = [
+    'Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'
+  ];
+
   // Estado da aplicação (inicia sempre na data de hoje do dispositivo)
   const now = new Date();
   const state = {
@@ -84,6 +88,11 @@
   function getWeekdayName(year, month, day) {
     const date = new Date(year, month, day);
     return WEEKDAYS[date.getDay()];
+  }
+
+  function getWeekdayShort(year, month, day) {
+    const date = new Date(year, month, day);
+    return WEEKDAYS_SHORT[date.getDay()];
   }
 
   function getPeriodKey(year, month) {
@@ -278,12 +287,12 @@
     const monthRecords = getMonthRecords(state.year, state.month);
 
     for (let d = 1; d <= daysCount; d++) {
-      const weekday = getWeekdayName(state.year, state.month, d);
+      const weekdayShort = getWeekdayShort(state.year, state.month, d);
       const rec = monthRecords[String(d)];
       const hasRecord = Boolean(rec && (rec.km > 0 || (rec.note && rec.note.trim())));
       const opt = document.createElement('option');
       opt.value = String(d);
-      opt.textContent = `Dia ${pad2(d)}/${pad2(state.month + 1)} — ${weekday}${hasRecord ? ' • Com registro' : ''}`;
+      opt.textContent = `${pad2(d)}/${pad2(state.month + 1)} (${weekdayShort})${hasRecord ? ' • Salvo' : ''}`;
       elements.entryDay.appendChild(opt);
     }
 
@@ -399,7 +408,7 @@
 
       const tdDay = document.createElement('td');
       tdDay.className = 'col-day';
-      tdDay.textContent = `${pad2(d)}/${monthNumber}`;
+      tdDay.innerHTML = `${pad2(d)}/${monthNumber}<span class="day-cell-sub">${getWeekdayShort(state.year, state.month, d)}</span>`;
 
       const tdWeekday = document.createElement('td');
       tdWeekday.className = 'col-weekday';
@@ -418,7 +427,7 @@
       const btnSelect = document.createElement('button');
       btnSelect.type = 'button';
       btnSelect.className = 'btn-table';
-      btnSelect.textContent = d === state.selectedDay ? 'Selecionado' : 'Selecionar';
+      btnSelect.textContent = d === state.selectedDay ? 'Ativo' : 'Abrir';
       btnSelect.addEventListener('click', () => {
         selectDay(d, true);
       });
@@ -435,12 +444,15 @@
 
     if (renderedRows === 0) {
       const emptyTr = document.createElement('tr');
+      const hiddenTd = document.createElement('td');
+      hiddenTd.className = 'col-weekday';
       const emptyTd = document.createElement('td');
-      emptyTd.colSpan = 5;
+      emptyTd.colSpan = 4;
       emptyTd.style.textAlign = 'center';
-      emptyTd.style.padding = '1.5rem';
+      emptyTd.style.padding = '1.5rem 0.5rem';
       emptyTd.style.color = 'var(--text-muted)';
       emptyTd.textContent = 'Nenhum deslocamento registrado neste mês até o momento.';
+      emptyTr.appendChild(hiddenTd);
       emptyTr.appendChild(emptyTd);
       elements.sheetBody.appendChild(emptyTr);
     }

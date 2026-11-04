@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta name="referrer" content="no-referrer">
   <meta name="theme-color" content="#0a192f">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -108,7 +110,7 @@
             <p class="current-day-note" id="currentDayNoteValue">Nenhum deslocamento anotado neste dia.</p>
           </div>
 
-          <!-- Seletor de Modo em Botões Segmentados (Evita erro de operação) -->
+          <!-- Seletor de Modo em Botões Segmentados -->
           <div class="field-group">
             <label>Como deseja salvar este lançamento?</label>
             <div class="mode-selector" role="radiogroup" aria-label="Modo de lançamento">
@@ -116,7 +118,7 @@
                 Somar ao dia
               </button>
               <button type="button" id="modeReplaceBtn" class="mode-btn" data-mode="replace">
-                Substituir dia inteiro
+                Substituir dia
               </button>
             </div>
             <small class="field-hint" id="modeHintText">
@@ -188,15 +190,16 @@
               <tr>
                 <th class="col-day">Dia</th>
                 <th class="col-weekday">Dia da semana</th>
-                <th class="col-note">Observação / Locais</th>
-                <th class="col-km">Quilometragem</th>
-                <th class="col-action">Seleção</th>
+                <th class="col-note">Observação</th>
+                <th class="col-km">KM</th>
+                <th class="col-action">Ação</th>
               </tr>
             </thead>
             <tbody id="sheetBody"></tbody>
             <tfoot>
               <tr>
-                <td colspan="3" class="tfoot-label">Total acumulado no mês</td>
+                <td class="col-weekday tfoot-label"></td>
+                <td colspan="2" class="tfoot-label">Total no mês</td>
                 <td class="tfoot-value" id="tfootTotalKm">0,0 km</td>
                 <td class="tfoot-empty"></td>
               </tr>
@@ -207,7 +210,7 @@
     </div>
   </main>
 
-  <!-- Modal de Confirmação para Limpar o Dia (Evita exclusão acidental) -->
+  <!-- Modal de Confirmação para Limpar o Dia -->
   <div class="modal-backdrop no-print" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" hidden>
     <div class="modal-box">
       <h3 id="modalTitle" class="modal-title">Confirmar exclusão do dia</h3>
