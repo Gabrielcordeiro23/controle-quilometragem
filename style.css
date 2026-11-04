@@ -75,10 +75,26 @@ body {
 .brand {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   width: 100%;
-  gap: 0.65rem;
-  flex-wrap: wrap;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.brand-logo {
+  height: 24px;
+  width: auto;
+  max-width: 150px;
+  display: block;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.brand-divider {
+  width: 1px;
+  height: 22px;
+  background-color: rgba(255, 255, 255, 0.28);
+  flex-shrink: 0;
 }
 
 .brand-title {
@@ -86,17 +102,9 @@ body {
   font-weight: 600;
   letter-spacing: -0.02em;
   color: #ffffff;
-}
-
-.storage-status {
-  font-size: 0.72rem;
-  font-weight: 500;
-  padding: 0.24rem 0.6rem;
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 999px;
-  color: rgba(255, 255, 255, 0.92);
-  background-color: rgba(255, 255, 255, 0.06);
-  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Conteúdo Principal */
@@ -704,13 +712,20 @@ body {
     padding: 1rem 0.85rem;
   }
 
-  .brand-title {
-    font-size: 1rem;
+  .brand {
+    gap: 0.65rem;
   }
 
-  .storage-status {
-    font-size: 0.68rem;
-    padding: 0.2rem 0.5rem;
+  .brand-logo {
+    height: 19px;
+  }
+
+  .brand-divider {
+    height: 18px;
+  }
+
+  .brand-title {
+    font-size: 0.95rem;
   }
 
   .period-group {
@@ -809,6 +824,22 @@ body {
 @media (max-width: 380px) {
   .container {
     padding: 0 0.55rem;
+  }
+
+  .brand {
+    gap: 0.5rem;
+  }
+
+  .brand-logo {
+    height: 16px;
+  }
+
+  .brand-divider {
+    height: 15px;
+  }
+
+  .brand-title {
+    font-size: 0.85rem;
   }
 
   .card {

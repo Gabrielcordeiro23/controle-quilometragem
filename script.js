@@ -30,7 +30,6 @@
 
   // Elementos do DOM
   const elements = {
-    storageStatus: document.getElementById('storageStatus'),
     driverName: document.getElementById('driverName'),
     selectMonth: document.getElementById('selectMonth'),
     selectYear: document.getElementById('selectYear'),
@@ -181,18 +180,8 @@
         updatedAt: new Date().toISOString()
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-      if (elements.storageStatus) {
-        const timeStr = new Date().toLocaleTimeString('pt-BR', {
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-        elements.storageStatus.textContent = `Salvo neste dispositivo (${timeStr})`;
-      }
     } catch (err) {
       console.error('Erro ao salvar dados no dispositivo:', err);
-      if (elements.storageStatus) {
-        elements.storageStatus.textContent = 'Atenção: armazenamento local indisponível';
-      }
     }
   }
 

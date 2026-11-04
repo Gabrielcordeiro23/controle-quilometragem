@@ -1,10 +1,11 @@
-const CACHE_NAME = 'controle-km-offline-v5';
+const CACHE_NAME = 'controle-km-offline-v6';
 
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './style.css',
   './script.js',
+  './logo-scturbo.png',
   './manifest.json',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'
